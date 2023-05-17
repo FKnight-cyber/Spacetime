@@ -1,11 +1,21 @@
-import fastify from 'fastify';
+import fastify from 'fastify'
+import sqlite from './databases/sqlite'
+import dotenv from 'dotenv'
 
-const app = fastify();
+dotenv.config()
 
-const port = 5000;
+const app = fastify()
 
-app.listen({
-    port
-}).then(() => {
-    console.log(`Server running on http://localhost:${port}`);
+const port: number = Number(process.env.PORT) || 5000
+
+app.get('/users', async () => {
+  return await sqlite.user.findMany()
 })
+
+app
+  .listen({
+    port,
+  })
+  .then(() => {
+    console.log(`Server running on http://localhost:${port}`)
+  })
