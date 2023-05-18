@@ -1,6 +1,7 @@
 import fastify from 'fastify'
-import sqlite from './databases/sqlite'
+import cors from '@fastify/cors'
 import dotenv from 'dotenv'
+import { memoriesRoutes } from './routes/memories'
 
 dotenv.config()
 
@@ -8,9 +9,10 @@ const app = fastify()
 
 const port: number = Number(process.env.PORT) || 5000
 
-app.get('/users', async () => {
-  return await sqlite.user.findMany()
+app.register(cors, {
+  origin: true,
 })
+app.register(memoriesRoutes)
 
 app
   .listen({
