@@ -3,8 +3,15 @@ import sqlite from '../databases/sqlite'
 import { z } from 'zod'
 
 export async function memoriesRoutes(app: FastifyInstance) {
-  app.get('/memories', async () => {
+  app.addHook('preHandler', async (request) => {
+    await request.jwtVerify()
+  })
+
+  app.get('/memories', async (request) => {
     const memories = await sqlite.memory.findMany({
+      where: {
+        userId: Number(request.user.sub),
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -19,14 +26,19 @@ export async function memoriesRoutes(app: FastifyInstance) {
     })
   })
 
-  app.get('/memories/:id', async (request: any) => {
+  app.get('/memories/:id', async (request: any, reply) => {
     const id: number = Number(request.params.id)
 
-    return await sqlite.memory.findUniqueOrThrow({
+    const memory = await sqlite.memory.findUniqueOrThrow({
       where: {
         id,
       },
     })
+
+    if (!memory.isPublic && memory.userId !== Number(request.user.sub))
+      return reply.status(401).send()
+
+    return memory
   })
 
   app.post('/memories', async (request) => {
@@ -50,7 +62,7 @@ export async function memoriesRoutes(app: FastifyInstance) {
     return memory
   })
 
-  app.put('/memories/:id', async (request: any) => {
+  app.put('/memories/:id', async (request: any, reply) => {
     const id: number = Number(request.params.id)
 
     const bodySchema = z.object({
@@ -61,7 +73,16 @@ export async function memoriesRoutes(app: FastifyInstance) {
 
     const { content, isPublic, coverUrl } = bodySchema.parse(request.body)
 
-    const memory = await sqlite.memory.update({
+    let memory = await sqlite.memory.findUniqueOrThrow({
+      where: {
+        id,
+      },
+    })
+
+    if (memory.userId !== Number(request.user.sub))
+      return reply.status(401).send()
+
+    memory = await sqlite.memory.update({
       where: {
         id,
       },
@@ -75,10 +96,19 @@ export async function memoriesRoutes(app: FastifyInstance) {
     return memory
   })
 
-  app.delete('/memories/:id', async (request: any) => {
+  app.delete('/memories/:id', async (request: any, reply) => {
     const id: number = Number(request.params.id)
 
-    return await sqlite.memory.delete({
+    const memory = await sqlite.memory.findUniqueOrThrow({
+      where: {
+        id,
+      },
+    })
+
+    if (memory.userId !== Number(request.user.sub))
+      return reply.status(401).send()
+
+    await sqlite.memory.delete({
       where: {
         id,
       },
