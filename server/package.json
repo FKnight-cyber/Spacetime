@@ -28,5 +28,9 @@
     "dotenv": "^16.0.3",
     "fastify": "^4.17.0",
     "zod": "^3.21.4"
+  },
+  "overrides": {
+    "metro": "0.76.0",
+    "metro-resolver": "0.76.0"
   }
 }
